@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Helios" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#07080c</item>
+        <item name="android:navigationBarColor">#07080c</item>
+        <item name="android:windowBackground">#07080c</item>
+    </style>
+</resources>
