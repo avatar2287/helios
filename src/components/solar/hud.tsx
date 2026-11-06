@@ -1,4 +1,4 @@
-import { memo, useState, type ReactNode } from "react";
+import { memo, useEffect, useRef, useState, type ReactNode } from "react";
 import { Compass, Info, Minus, Orbit, Pause, Play, Plus, Route, Tag } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -58,6 +58,18 @@ export function Hud() {
   const [infoOpen, setInfoOpen] = useState(false);
   const [chartOpen, setChartOpen] = useState(false);
   const [sheet, setSheet] = useState<"dances" | "kepler" | null>(null);
+  const headerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const header = headerRef.current;
+    const overlay = header?.parentElement;
+    if (!header || !overlay) return;
+    const update = () => overlay.style.setProperty("--hud-top", `${header.offsetHeight + 4}px`);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <>
@@ -77,8 +89,8 @@ export function Hud() {
         <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-bg via-bg/70 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-bg via-bg/80 to-transparent" />
 
-        <header className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4 sm:p-6">
-          <div className="pointer-events-auto max-w-[16rem] sm:max-w-sm">
+        <header ref={headerRef} className="solar-header absolute inset-x-0 top-0 flex flex-wrap items-start justify-between gap-2 p-3 sm:flex-nowrap sm:p-6">
+          <div className="solar-brand pointer-events-auto min-w-0 sm:max-w-sm">
             <p className="text-xs tracking-widest text-accent uppercase">{t(lang, "observatory")}</p>
             <h1 className="font-display text-4xl leading-none sm:text-5xl">{t(lang, "title")}</h1>
             <p
@@ -90,9 +102,9 @@ export function Hud() {
               День 0 · рік 0
             </p>
           </div>
-          <div className="pointer-events-auto flex items-center justify-end gap-2">
+          <div className="solar-actions pointer-events-auto flex max-w-full flex-wrap items-center justify-end gap-1 sm:gap-2">
             {paused && (
-              <span className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs text-accent backdrop-blur-xl">
+              <span className="hidden rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs text-accent backdrop-blur-xl sm:block">
                 {t(lang, "pause")}
               </span>
             )}
@@ -121,7 +133,7 @@ export function Hud() {
                 "inline-flex h-11 items-center rounded-full border border-white/10 px-3 text-sm backdrop-blur-xl",
                 chartOpen ? "bg-accent text-bg" : "bg-white/10 text-fg",
               )}
-              onClick={() => setChartOpen((open) => !open)}
+              onClick={() => { setChartOpen((open) => !open); setInfoOpen(false); setSheet(null); }}
             >
               {ct(lang, "chart")}
             </button>
@@ -134,12 +146,13 @@ export function Hud() {
                 "grid size-11 place-items-center rounded-full border border-white/10 bg-white/10 backdrop-blur-xl",
                 infoOpen ? "bg-accent text-bg" : "text-fg",
               )}
-              onClick={() => setInfoOpen((open) => !open)}
+              onClick={() => { setInfoOpen((open) => !open); setChartOpen(false); setSheet(null); }}
             >
               <Info className="size-4" aria-hidden="true" />
             </button>
             <button
               type="button"
+              aria-label={t(lang, "overview")}
               className={cn(
                 tap,
                 "inline-flex h-11 items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 text-sm text-fg backdrop-blur-xl",
@@ -157,7 +170,7 @@ export function Hud() {
         {chartOpen && <ChartPanel onClose={() => setChartOpen(false)} />}
 
         {sheet === "dances" && (
-          <div className="pointer-events-auto absolute inset-x-0 top-[4.6rem] z-20 px-3 sm:px-6">
+          <div className="dance-sheet pointer-events-auto absolute inset-x-0 z-20 px-3 sm:px-6">
             <div className="chiprow flex gap-1 overflow-x-auto rounded-2xl border border-white/10 bg-black/45 p-1.5 backdrop-blur-xl">
               {DANCE_KEYS.map((id) => {
                 const on = dances.includes(id);
@@ -211,7 +224,7 @@ export function Hud() {
 
         <aside
           className={cn(
-            "pointer-events-none absolute top-20 right-4 w-60 sm:w-64",
+            "info-panel pointer-events-none absolute right-4 w-60 sm:w-64",
             infoOpen ? "block" : "hidden",
           )}
         >
@@ -243,7 +256,7 @@ export function Hud() {
             })}
           </div>
 
-          <div className="pointer-events-auto mx-auto flex w-full max-w-3xl flex-col gap-2 rounded-2xl border border-white/10 bg-white/10 p-2 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+          <div className="control-panel scrollthin pointer-events-auto mx-auto flex max-h-[35dvh] w-full max-w-3xl flex-col gap-2 overflow-y-auto rounded-2xl border border-white/10 bg-white/10 p-2 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl">
             <div className="flex items-center gap-1">
               <button
                 type="button"
@@ -326,7 +339,7 @@ export function Hud() {
               <button
                 type="button"
                 aria-expanded={sheet === "dances"}
-                onClick={() => setSheet((cur) => (cur === "dances" ? null : "dances"))}
+                onClick={() => { setSheet((cur) => (cur === "dances" ? null : "dances")); setChartOpen(false); setInfoOpen(false); }}
                 className={cn(
                   tap,
                   "inline-flex h-11 items-center gap-2 rounded-full px-3 text-sm",
@@ -339,7 +352,7 @@ export function Hud() {
               <button
                 type="button"
                 aria-expanded={sheet === "kepler"}
-                onClick={() => setSheet((cur) => (cur === "kepler" ? null : "kepler"))}
+                onClick={() => { setSheet((cur) => (cur === "kepler" ? null : "kepler")); setChartOpen(false); setInfoOpen(false); }}
                 className={cn(
                   tap,
                   "inline-flex h-11 items-center gap-2 rounded-full px-3 text-sm",
@@ -390,7 +403,7 @@ export function Hud() {
             </div>
             )}
           </div>
-          <p className="pointer-events-none mt-2 text-center text-xs text-muted">
+          <p className="pointer-events-none mt-2 hidden text-center text-xs text-muted [@media(pointer:fine)]:block">
             {t(lang, "hint")}
           </p>
         </div>

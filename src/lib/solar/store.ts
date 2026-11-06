@@ -11,12 +11,12 @@ const KEPLER_IDS: KeplerSolid[] = ["octa", "icosa", "dodeca", "tetra", "cube"];
 
 export function readKepler(value: unknown): KeplerSolid[] {
   if (!Array.isArray(value)) return [];
-  return value.filter((id): id is KeplerSolid => typeof id === "string" && KEPLER_IDS.includes(id as KeplerSolid));
+  return [...new Set(value.filter((id): id is KeplerSolid => typeof id === "string" && KEPLER_IDS.includes(id as KeplerSolid)))];
 }
 
 export function readDances(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
-  return value.filter((id): id is string => typeof id === "string" && DANCE_KEYS.includes(id));
+  return [...new Set(value.filter((id): id is string => typeof id === "string" && DANCE_KEYS.includes(id)))];
 }
 
 export function clampSpeed(n: number) {
@@ -101,9 +101,9 @@ export function loadPrefs() {
     const chart = isNatalChart(parsed.chart) ? parsed.chart : null;
     useSolar.setState({
       speed: typeof parsed.speed === "number" ? clampSpeed(parsed.speed) : 1,
-      trails: parsed.trails ?? true,
-      labels: parsed.labels ?? true,
-      orbits: parsed.orbits ?? true,
+      trails: typeof parsed.trails === "boolean" ? parsed.trails : true,
+      labels: typeof parsed.labels === "boolean" ? parsed.labels : true,
+      orbits: typeof parsed.orbits === "boolean" ? parsed.orbits : true,
       kepler: readKepler(parsed.kepler),
       dances: readDances(parsed.dances),
       lang,
@@ -118,6 +118,7 @@ export function loadPrefs() {
 
 export function bindPrefs() {
   return useSolar.subscribe((s) => {
+    try {
     localStorage.setItem(
       PREF_KEY,
       JSON.stringify({
@@ -132,5 +133,8 @@ export function bindPrefs() {
         chart: s.chart,
       }),
     );
+    } catch {
+      // Storage can be disabled or full; controls must remain usable.
+    }
   });
 }

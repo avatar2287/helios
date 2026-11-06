@@ -164,12 +164,29 @@ function tzOffsetMinutes(date: Date, timeZone: string) {
 }
 
 export function zonedToDate(y: number, mo: number, d: number, h: number, mi: number, timeZone: string) {
+  // Older Android ICU versions know the legacy spelling only.
+  if (timeZone === "Europe/Kyiv") {
+    try { new Intl.DateTimeFormat("en", { timeZone }); }
+    catch { timeZone = "Europe/Kiev"; }
+  }
   const wall = Date.UTC(y, mo - 1, d, h, mi, 0);
   const first = tzOffsetMinutes(new Date(wall), timeZone);
   let result = new Date(wall - first * 60000);
   const second = tzOffsetMinutes(result, timeZone);
   if (second !== first) result = new Date(wall - second * 60000);
+  if (result.getTime() + tzOffsetMinutes(result, timeZone) * 60000 !== wall) {
+    throw new RangeError("This local time does not exist because the clocks changed.");
+  }
   return result;
+}
+
+export function isChartWhen(value: unknown): value is NatalChart["when"] {
+  if (!value || typeof value !== "object") return false;
+  const w = value as NatalChart["when"];
+  if (![w.y, w.mo, w.d, w.h, w.mi].every(Number.isInteger)) return false;
+  if (w.y < 1800 || w.y > 2200 || w.mo < 1 || w.mo > 12 || w.d < 1 || w.h < 0 || w.h > 23 || w.mi < 0 || w.mi > 59) return false;
+  const date = new Date(Date.UTC(w.y, w.mo - 1, w.d));
+  return date.getUTCFullYear() === w.y && date.getUTCMonth() === w.mo - 1 && date.getUTCDate() === w.d;
 }
 
 function wrapLon(lon: number) {
@@ -216,6 +233,7 @@ function aspectsOf(placements: Placement[]): Aspect[] {
 }
 
 export function computeChart(when: NatalChart["when"], city: City): NatalChart {
+  if (!isChartWhen(when)) throw new RangeError("Enter a valid date between 1800 and 2200.");
   const date = zonedToDate(when.y, when.mo, when.d, when.h, when.mi, city.tz);
   const asc = ascendant(date, city.lat, city.lon);
   const ascSign = signOf(asc).sign;
@@ -247,5 +265,16 @@ export function computeChart(when: NatalChart["when"], city: City): NatalChart {
 export function isNatalChart(value: unknown): value is NatalChart {
   if (!value || typeof value !== "object") return false;
   const chart = value as NatalChart;
-  return Array.isArray(chart.placements) && chart.placements.length === CHART_BODIES.length && typeof chart.asc === "number";
+  const bounded = (n: unknown, lo: number, hi: number): n is number => typeof n === "number" && Number.isFinite(n) && n >= lo && n <= hi;
+  return isChartWhen(chart.when)
+    && CITIES.some((city) => city.id === chart.cityId)
+    && !!chart.cityName && ["uk", "en", "ru"].every((lang) => typeof chart.cityName[lang as Lang] === "string")
+    && bounded(chart.lat, -90, 90) && bounded(chart.lonGeo, -180, 180) && bounded(chart.asc, 0, 360)
+    && Array.isArray(chart.placements) && chart.placements.length === CHART_BODIES.length
+    && new Set(chart.placements.map((p) => p?.id)).size === CHART_BODIES.length
+    && chart.placements.every((p) => p && CHART_BODIES.includes(p.id) && SIGN_IDS.includes(p.sign)
+      && bounded(p.lon, 0, 360) && bounded(p.deg, 0, 30) && bounded(p.house, 1, 12) && Number.isInteger(p.house) && typeof p.retro === "boolean")
+    && Array.isArray(chart.aspects) && chart.aspects.length <= 45
+    && chart.aspects.every((a) => a && CHART_BODIES.includes(a.a) && CHART_BODIES.includes(a.b) && a.a !== a.b
+      && ASPECTS.some((s) => s.kind === a.kind) && bounded(a.orb, 0, 8));
 }

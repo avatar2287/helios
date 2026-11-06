@@ -836,9 +836,11 @@ function CameraRig() {
 
     const onDown = (e: PointerEvent) => {
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      pointerGate.dragged = false;
-      pointerGate.x = e.clientX;
-      pointerGate.y = e.clientY;
+      pointerGate.dragged = pointers.size > 1;
+      if (pointers.size === 1) {
+        pointerGate.x = e.clientX;
+        pointerGate.y = e.clientY;
+      }
       r.dragging = pointers.size;
       r.easing = false;
       el.style.cursor = "grabbing";
@@ -872,6 +874,7 @@ function CameraRig() {
       }
     };
     const onUp = (e: PointerEvent) => {
+      if (!pointers.has(e.pointerId)) return;
       pointers.delete(e.pointerId);
       r.dragging = pointers.size;
       if (!pointerGate.dragged) {
@@ -886,13 +889,13 @@ function CameraRig() {
       r.distGoal = clamp(r.distGoal * Math.exp(e.deltaY * 0.00115), minDist(useSolar.getState().focus), 150);
     };
     el.addEventListener("pointerdown", onDown);
-    el.addEventListener("pointermove", onMove);
+    window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => {
       el.removeEventListener("pointerdown", onDown);
-      el.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
       el.removeEventListener("wheel", onWheel);
@@ -906,7 +909,6 @@ function CameraRig() {
       cameraCmd.reset = false;
       const state = useSolar.getState();
       state.setFocus(null);
-      if (state.chart) state.setChart(null);
       r.easing = true;
       r.azGoal = 0.62;
       r.polGoal = 0.92;

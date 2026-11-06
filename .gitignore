@@ -29,3 +29,6 @@ dist/
 local.properties
 *.jks
 *.keystore
+
+# Rebuilt by the Android buildWeb task.
+/android/app/src/main/assets/www/

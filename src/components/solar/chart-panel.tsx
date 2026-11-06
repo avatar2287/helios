@@ -15,6 +15,7 @@ export function ChartPanel({ onClose }: { onClose: () => void }) {
   const [time, setTime] = useState(chart ? isoTime(chart.when) : "12:00");
   const [query, setQuery] = useState("");
   const [cityId, setCityId] = useState(chart?.cityId ?? "kyiv");
+  const [error, setError] = useState(false);
   const cities = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return CITIES;
@@ -23,19 +24,24 @@ export function ChartPanel({ onClose }: { onClose: () => void }) {
   const place = chart?.placements.find((item) => item.id === chartFocus) ?? chart?.placements[0];
 
   const build = () => {
+    setError(false);
+    try {
     const [y, mo, d] = date.split("-").map(Number);
     const [h, mi] = time.split(":").map(Number);
-    if (!y || !mo || !d || Number.isNaN(h) || Number.isNaN(mi)) return;
-    const next = computeChart({ y, mo, d, h, mi: mi || 0 }, findCity(cityId));
+    if (!date || !time) throw new RangeError("Missing date or time");
+    const next = computeChart({ y, mo, d, h, mi }, findCity(cityId));
     setChart(next);
     setChartFocus("sun");
+    } catch {
+      setError(true);
+    }
   };
 
   return (
-    <aside className="pointer-events-auto absolute top-20 right-3 z-30 w-[min(22rem,calc(100vw-1.5rem))] max-h-[min(34rem,72vh)] overflow-y-auto rounded-2xl border border-white/10 bg-black/55 p-3 text-fg shadow-[0_20px_60px_rgba(0,0,0,0.4)] backdrop-blur-xl sm:right-6">
+    <aside aria-label={ct(lang, "chart")} className="chart-panel pointer-events-auto absolute right-3 z-30 w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-white/10 bg-black/85 p-3 text-fg shadow-[0_20px_60px_rgba(0,0,0,0.4)] backdrop-blur-xl sm:right-6">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[10px] tracking-widest text-accent uppercase">{ct(lang, "chart")}</p>
-        <button type="button" className="text-xs text-muted" onClick={onClose}>
+        <button type="button" aria-label={lang === "uk" ? "Закрити" : lang === "ru" ? "Закрыть" : "Close"} className="grid size-11 place-items-center text-xl text-muted" onClick={onClose}>
           ×
         </button>
       </div>
@@ -54,7 +60,7 @@ export function ChartPanel({ onClose }: { onClose: () => void }) {
       </div>
       <label className="mt-3 block text-[10px] tracking-widest text-muted uppercase">
         {ct(lang, "date")}
-        <input className="mt-1 h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-fg" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+        <input className="mt-1 h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-fg" type="date" min="1800-01-01" max="2200-12-31" value={date} onChange={(event) => setDate(event.target.value)} />
       </label>
       <label className="mt-2 block text-[10px] tracking-widest text-muted uppercase">
         {ct(lang, "time")}
@@ -85,6 +91,7 @@ export function ChartPanel({ onClose }: { onClose: () => void }) {
       <button type="button" className="mt-3 h-10 w-full rounded-full bg-accent text-sm text-bg" onClick={build}>
         {ct(lang, "build")}
       </button>
+      {error && <p role="alert" className="mt-2 text-xs text-red-300">{lang === "uk" ? "Перевірте дату (1800–2200) і час. Під час переведення годинника цей час може не існувати." : lang === "ru" ? "Проверьте дату (1800–2200) и время. При переводе часов это время может не существовать." : "Check the date (1800–2200) and time. This time may not exist during a clock change."}</p>}
       {chart && (
         <button type="button" className="mt-2 h-9 w-full rounded-full text-xs text-muted" onClick={() => setChart(null)}>
           {ct(lang, "clear")}
