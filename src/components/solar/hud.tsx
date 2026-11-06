@@ -517,6 +517,9 @@ function InfoCard({ bodyId }: { bodyId: BodyId | null }) {
         </p>
       )}
       <p className="mt-2 text-[10px] leading-relaxed text-muted">{t(lang, "scale")}</p>
+      <footer className="mt-3 border-t border-line pt-2 text-xs leading-relaxed text-fg">
+        Приложение сделал Владик <span className="text-accent">@sonik221116</span>
+      </footer>
     </article>
   );
 }
