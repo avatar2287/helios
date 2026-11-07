@@ -4,14 +4,15 @@ plugins {
 
 android {
     namespace "app.helios"
-    compileSdk 34
+    compileSdk 35
+    buildFeatures { buildConfig true }
 
     defaultConfig {
         applicationId "app.helios.solar"
         minSdk 26
-        targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        targetSdk 35
+        versionCode 3
+        versionName "1.0.2-test"
     }
 
     compileOptions {
@@ -22,7 +23,6 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.debug
         }
     }
 }
@@ -30,3 +30,12 @@ android {
 dependencies {
     implementation "androidx.webkit:webkit:1.12.1"
 }
+
+tasks.register("buildWeb", Exec) {
+    workingDir rootProject.projectDir.parentFile
+    commandLine System.getProperty("os.name").toLowerCase().contains("windows") ? "npm.cmd" : "npm", "run", "build:apk-web"
+    inputs.files(fileTree("${rootProject.projectDir.parent}/src"), fileTree("${rootProject.projectDir.parent}/apk"), fileTree("${rootProject.projectDir.parent}/public/textures"))
+    inputs.files("${rootProject.projectDir.parent}/package-lock.json", "${rootProject.projectDir.parent}/vite.apk.config.ts")
+    outputs.dir("src/main/assets/www")
+}
+tasks.named("preBuild").configure { dependsOn("buildWeb") }

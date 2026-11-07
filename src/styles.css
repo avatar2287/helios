@@ -31,6 +31,30 @@
   input[type="range"] {
     accent-color: var(--color-accent);
   }
+
+  input { min-width: 0; }
+}
+
+:root { color-scheme: dark; --hud-top: 7.75rem; }
+.solar-brand { flex: 1 0 100%; }
+.solar-actions { width: 100%; justify-content: flex-start; }
+.chart-panel, .info-panel { top: var(--hud-top); max-height: calc(100dvh - var(--hud-top) - 1rem); }
+.dance-sheet { top: var(--hud-top); }
+
+@media (min-width: 640px) {
+  :root { --hud-top: 6.5rem; }
+  .solar-brand { flex: 0 1 auto; }
+  .solar-actions { width: auto; justify-content: flex-end; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  :root { --hud-top: 4rem; }
+  .solar-header { flex-wrap: nowrap; }
+  .solar-brand { flex: 1; }
+  .solar-brand h1 { font-size: 1.75rem; }
+  .solar-brand > p { display: none; }
+  .solar-actions { width: auto; }
+  .control-panel { max-height: 30dvh; }
 }
 
 .rise {
